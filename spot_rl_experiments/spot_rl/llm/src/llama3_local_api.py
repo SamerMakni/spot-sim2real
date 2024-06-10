@@ -17,7 +17,7 @@ class MetaAI:
         self.data = {
             "model": self.model_name,
             "keep_alive": -1,
-            "options": {"main_gpu": 1},
+            "options": {"num_gpu": 2, "main_gpu": 1},
             "prompt": template_prompt,
             "stream": False,
         }
