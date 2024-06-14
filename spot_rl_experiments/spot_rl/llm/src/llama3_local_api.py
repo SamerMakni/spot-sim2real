@@ -1,4 +1,5 @@
 import json
+import time
 from typing import Dict
 
 import requests
@@ -17,7 +18,6 @@ class MetaAI:
         self.data = {
             "model": self.model_name,
             "keep_alive": -1,
-            "options": {"num_gpu": 2, "main_gpu": 1},
             "prompt": template_prompt,
             "stream": False,
         }
@@ -30,14 +30,17 @@ class MetaAI:
         ), f"ollama returned status code {status_code}, failed to start ollama with {self.model_name}"
 
     def prompt(self, message: str = "Hey, are you LLAMA3 ?") -> Dict[str, str]:
-        self.data.update({"prompt": message, "context": self.context})
+        t1 = time.time()
+        self.data.update({"prompt": message})
         response = requests.post(self.url + "generate", json=self.data)
         status_code = response.status_code
         assert (
             status_code == 200
         ), f"ollama returned status code {status_code}, please check if ollama is running correctly"
         respons = json.loads(response.text)
-        self.context = respons.get("context", [])
+        print(
+            f"LLAMA says {respons.get('response', '')}; Time taken to eval {time.time()-t1} secs"
+        )
         return {"message": str(respons["response"])}
 
 
