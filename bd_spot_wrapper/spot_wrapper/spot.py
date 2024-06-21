@@ -31,6 +31,7 @@ try:
 except Exception as e:
     print(f"Cannot import sophuspy due to {e}. Import sophus instead")
     import sophus as sp
+
 from bosdyn import geometry
 from bosdyn.api import (
     arm_command_pb2,
@@ -70,6 +71,7 @@ from perception_and_utils.utils.conversions import (
     bd_SE3Pose_to_ros_TransformStamped,
     bd_SE3Pose_to_sophus_SE3,
 )
+from spot_rl.utils.gripper_T_intel import GRIPPER_T_INTEL
 from spot_rl.utils.utils import ros_frames as rf
 from spot_wrapper.utils import (
     get_angle_between_forward_and_target,
@@ -166,6 +168,8 @@ SpotCamIdToFrameNameMap = {
     SpotCamIds.RIGHT_DEPTH: "right",
     SpotCamIds.RIGHT_DEPTH_IN_VISUAL_FRAME: "right_fisheye",
     SpotCamIds.RIGHT_FISHEYE: "right_fisheye",
+    SpotCamIds.INTEL_REALSENSE_COLOR: "hand_color_image_sensor",
+    SpotCamIds.INTEL_REALSENSE_DEPTH: "hand_color_image_sensor",
 }  # type: Dict[SpotCamIds, str]
 
 
@@ -481,8 +485,8 @@ class Spot:
         """
         # By default, always log for hand camera data
         source_list = [
-            SpotCamIds.HAND_COLOR,
-            SpotCamIds.HAND_COLOR_IN_HAND_DEPTH_FRAME,
+            # SpotCamIds.HAND_COLOR,
+            # SpotCamIds.HAND_COLOR_IN_HAND_DEPTH_FRAME,
         ]  # type: List[str]
 
         if not camera_sources:
@@ -495,6 +499,9 @@ class Spot:
                     source_list.append(camera_source)
 
         self.source_list = source_list
+        self.gripper_T_intel = (
+            np.load(GRIPPER_T_INTEL) if "intel" in source_list[0] else np.eye(4)
+        )
         print(f"Initialized logging for sources : {self.source_list}")
 
     def update_logging_data(
@@ -517,10 +524,29 @@ class Spot:
         }  # type: Dict[str, Any]
 
         if include_image_data:
+            img_responses = self.get_image_responses(
+                [SpotCamIds.HAND_COLOR, SpotCamIds.HAND_COLOR_IN_HAND_DEPTH_FRAME]
+            )  # Get Gripper images
+            frame_tree_snapshot = img_responses[
+                0
+            ].shot.transforms_snapshot  # store transform snapshot
             img_responses = self.get_image_responses(self.source_list)
-            frame_tree_snapshot = img_responses[0].shot.transforms_snapshot
-
+            base_T_wrist: mn.Matrix4 = self.get_magnum_Matrix4_spot_a_T_b(
+                GRAV_ALIGNED_BODY_FRAME_NAME,  # "body",
+                "link_wr1",
+            )
+            gripper_T_intel = mn.Matrix4(
+                self.gripper_T_intel
+            )  # identity if source list doesn't have intel thus can work with traditional sources
             for i, camera_source in enumerate(self.source_list):
+                wrist_T_gripper: mn.Matrix4 = self.get_magnum_Matrix4_spot_a_T_b(
+                    "arm0.link_wr1",
+                    "hand_color_image_sensor",
+                    frame_tree_snapshot,
+                )
+                base_T_camera: mn.Matrix4 = (
+                    base_T_wrist @ wrist_T_gripper @ gripper_T_intel
+                )
                 log_packet["camera_data"].append(
                     {
                         "src_info": camera_source,
@@ -530,11 +556,7 @@ class Spot:
                         "camera_intrinsics": self.get_camera_intrinsics_as_3x3(
                             img_responses[i].source.pinhole.intrinsics
                         ),  # np.ndarray
-                        "base_T_camera": self.get_sophus_SE3_spot_a_T_b(
-                            img_responses[i].shot.transforms_snapshot,
-                            a="body",
-                            b=SpotCamIdToFrameNameMap[camera_source],
-                        ).matrix(),  # np.ndarray
+                        "base_T_camera": np.array(base_T_camera),  # np.ndarray
                     }
                 )
                 if visualize:

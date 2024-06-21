@@ -8,13 +8,14 @@ import numpy as np
 import open3d as o3d
 import rospy
 from spot_rl.envs.base_env import SpotBaseEnv
+from spot_rl.utils.gripper_T_intel import GRIPPER_T_INTEL
 from spot_rl.utils.heuristic_nav import get_3d_point, get_best_uvz_from_detection
 from spot_rl.utils.plane_detection import plane_detect
 from spot_rl.utils.utils import ros_topics as rt
 from spot_wrapper.spot import Spot, image_response_to_cv2
 from std_msgs.msg import String
 
-GRIPPER_T_INTEL = osp.join(osp.dirname(osp.abspath(__file__)), "gripper_T_intel.npy")
+# GRIPPER_T_INTEL = osp.join(osp.dirname(osp.abspath(__file__)), "gripper_T_intel.npy")
 
 
 class DetectionSubscriber:
