@@ -485,8 +485,8 @@ class Spot:
         """
         # By default, always log for hand camera data
         source_list = [
-            # SpotCamIds.HAND_COLOR,
-            # SpotCamIds.HAND_COLOR_IN_HAND_DEPTH_FRAME,
+            SpotCamIds.HAND_COLOR,
+            SpotCamIds.HAND_DEPTH_IN_HAND_COLOR_FRAME,
         ]  # type: List[str]
 
         if not camera_sources:
@@ -525,7 +525,7 @@ class Spot:
 
         if include_image_data:
             img_responses = self.get_image_responses(
-                [SpotCamIds.HAND_COLOR, SpotCamIds.HAND_COLOR_IN_HAND_DEPTH_FRAME]
+                [SpotCamIds.HAND_COLOR, SpotCamIds.HAND_DEPTH_IN_HAND_COLOR_FRAME]
             )  # Get Gripper images
             frame_tree_snapshot = img_responses[
                 0
@@ -581,9 +581,7 @@ class Spot:
         )
         log_packet[
             "gripper_force_in_hand"
-        ] = (
-            self.robot_state_client.get_robot_state().manipulator_state.estimated_end_effector_force_in_hand
-        )
+        ] = 0.0  # self.robot_state_client.get_robot_state().manipulator_state.estimated_end_effector_force_in_hand
 
         if verbose:
             print(log_packet)

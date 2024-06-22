@@ -33,8 +33,10 @@ def verify_sources(camera_sources: List[str]) -> bool:
 
 def log_data_async(spot):
     source_list = [
-        SpotCamIds.INTEL_REALSENSE_COLOR,
-        SpotCamIds.INTEL_REALSENSE_DEPTH,
+        # SpotCamIds.INTEL_REALSENSE_COLOR,
+        # SpotCamIds.INTEL_REALSENSE_DEPTH,
+        SpotCamIds.HAND_COLOR,
+        SpotCamIds.HAND_DEPTH_IN_HAND_COLOR_FRAME,
     ]  # type: List[str]
 
     log_packet_list = []  # type: List[Dict[str, Any]]
